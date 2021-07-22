@@ -1,0 +1,2 @@
+// trying some simple example atoms
+player_state: loading, title, character, map, encounter
