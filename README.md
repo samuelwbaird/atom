@@ -57,4 +57,5 @@ TODO: define validation parameters (eg optional fields, and default value)
 
 All input is case sensitive.  
 Atom names and field names must start with any alphabetic character, and then a contiguous string of alphanumeric or underscore characters.  
-Lines beginning with #, -- or // are treated as comments.  
+Lines beginning with -- are treated as comments.  
+All other use of special characters is reserved

@@ -1,2 +1,7 @@
-// trying some simple example atoms
+-- trying some simple example atoms
 player_state: loading, title, character, map, encounter
+
+encounter {  
+	level: int,  
+	difficulty:  difficulty,  
+}
