@@ -1,7 +1,12 @@
 -- trying some simple example atoms
 player_state: loading, title, character, map, encounter
 
+-- a product type
 encounter {  
 	level: int,  
 	difficulty:  difficulty,  
 }
+
+-- some free standing enum only types
+valid
+invalid

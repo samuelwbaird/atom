@@ -5,6 +5,9 @@
 --
 --------------------------------------------------------------  
 
+local parser = require('parser')
+
+-- top level process
 function process(input_file_name, output_file_name, format, module_name)
 	print('processing ' .. input_file_name .. ' format:' .. format)
 	
@@ -14,244 +17,69 @@ function process(input_file_name, output_file_name, format, module_name)
 	input:close()
 	
 	-- parse into a valid AST or error
-	local ast = parse(character_stream(contents), parse_format)
+	local ast = atom_file_parser(parser.character_stream(contents))
 	
 	-- comment line, symbol, sum type definition, 
 	
 end
 
--- parsers, read a stream of objects and return an object and the remainder of the stream, or nil, or raise an error
+-- parse a valid atom or token
+local parse_atom = parser.trim_line(parser.sequence({
+	parser.character_match('%a'),
+	parser.list(parser.character_match('[%w_]')),
+}, parser.steps(parser.reduce_text, parser.tag('atom'))))
 
-function list_to_stream(list, starting_index)
-	starting_index = starting_index or 1
-	return function ()
-		return list[starting_index], list_to_stream(list, starting_index + 1)
-	end
-end
-
-function character_stream(contents, index, line, column)
-	index = index or 1
-	if index > #contents then
-		return nil
-	end
-	
-	line = line or 1
-	column = column or 0
-	local character = contents:sub(index, index)
-	if character == '\n' then
-		line = line + 1
-		column = 0
-	else
-		column = column + 1
-	end
-	return function()
-		return { text = character, line = line, column = column }, character_stream(contents, index + 1, line, column)
-	end
-end
-
-function identity(value)
-	return value
-end
-
-function parse(stream, parser)
-	if not stream then
-		return
-	end
-	
-	local result, remainder = parser(stream)
-	if result then
-		return parse(remainder, parser)
-	end
-end
-
-function parse_any(parsers)
-	return function (stream)
-		for i = 1, #parsers do
-			local result, remainder = parsers[i](stream)
-			if result then
-				return result, remainder
-			end
-		end
-	end	
-end
-
-function parse_list(parser, minimum_length, transform)
-	transform = transform or identity	
-	minimum_length = minimum_length or 1
-	return function (stream)
-		local output = {}
-		while stream do
-			local result, remainder = parser(stream)
-			if result then
-				output[#output + 1] = result
-				stream = remainder
-			elseif #output < minimum_length then
-				return nil
-			else
-				return transform(output), stream
-			end
-		end
-		return transform(output), stream
-	end	
-end
-
-function parse_many(parsers, minimum_length)
-	return parse_list(parse_any(parsers), minimum_length)
-end
-
-function parse_sequence(parsers, transform)
-	transform = transform or identity	
-	return function (stream)
-		local output = {}
-		local p = 1
-		while stream do
-			local result, remainder = parsers[p](stream)
-			if result then
-				output[#output + 1] = result
-				stream = remainder
-			else
-				return nil, stream
-			end
-			p = p + 1
-			if p > #parsers then
-				return transform(output), stream
-			end
-		end
-	end	
-end
-
-function parse_character_match(pattern)
-	return function (stream)
-		local next, remainder = stream()
-		if next.text:match(pattern) then
-			return next, remainder
-		end		
-	end
-end
-
-function parse_character_equal(character)
-	return function (stream)
-		local next, remainder = stream()
-		if next.text == character then
-			return next, remainder
-		end		
-	end
-end
-
-function parse_character_not_equal(character)
-	return function (stream)
-		local next, remainder = stream()
-		if next.text ~= character then
-			return next, remainder
-		end		
-	end
-end
-
-function transform_steps(...)
-	local arg = { ... }
-	return function (obj)
-		for _, t in ipairs(arg) do
-			obj = t(obj) or obj
-		end
-		return obj
-	end
-end
-
-function transform_combine_string(list)
-	if #list == 0 then
-		return list
-	end
-	
-	local output = {
-		text = list[1].text,
-		line = list[1].line,
-		column = list[1].column
-	}
-	for i = 2, #list do
-		output.text = output.text .. list[i].text or ''
-	end
-	return output	
-end
-
-function display(obj)
-	print(require('cjson').encode(obj))
-end
-
-function transform_tag(tag)
-	return function (obj)
-		obj.tag = tag
-	end
-end
-
-parse_comment = parse_sequence({
-	parse_character_equal('-'),
-	parse_character_equal('-'),
-	parse_list(parse_character_not_equal('\n'), 0, transform_combine_string),
-}, transform_steps(transform_combine_string, transform_tag('comment'), display))
-
-parse_whitespace = parse_list(parse_character_match('%s'), 1, transform_steps(transform_combine_string, transform_tag('whitespace')))
-parse_optional_whitespace = parse_list(parse_character_match('%s'), 0, transform_steps(transform_combine_string, transform_tag('whitespace')))
-
-parse_atom = parse_sequence({
-	parse_character_match('%a'),
-	parse_list(parse_character_match('[%w_]'), 0, transform_combine_string),
-}, transform_steps(transform_combine_string, transform_tag('atom')))
-
-function filter_atoms(list, add_to_list)
-	local atoms = add_to_list or {}
-	for _, obj in ipairs(list) do
-		if obj.tag == 'atom' then
-			atoms[#atoms + 1] = obj.text
-		end
-		if #obj > 0 then
-			filter_atoms(obj, atoms)
-		end
-	end	
-	return {
-		atoms = atoms,
-	}
-end
-
-parse_sum_type = parse_sequence({
+-- parse a sum type, states: in, up, out, over
+local parse_sum_type = parser.sequence({
 	parse_atom,
-	parse_optional_whitespace,
-	parse_character_equal(':'),
-	parse_list(parse_sequence({
-		parse_optional_whitespace,
-		parse_atom,
-		parse_optional_whitespace,
-		parse_character_equal(','),
-	})),
-	parse_optional_whitespace,
-	parse_atom,
-}, transform_steps(filter_atoms, transform_tag('sum'), display))
+	parser.ignore(parser.character_equal(':')),
+	parser.separated_list(parse_atom, parser.character_equal(','), false),
+}, parser.steps(parser.tag('sum'), parser.display))
 
-parse_simple = parse_sequence({
+-- parse a product type, playing { level: int, difficulty: int, }
+local parse_field = parser.sequence({
 	parse_atom,
-}, transform_steps(display))
+	parser.ignore(parser.character_equal(':')),
+	parse_atom,
+}, parser.steps(parser.tag('field')))
 
-parse_statement = parse_any({
+local parse_product_type = parser.sequence({
+	parse_atom,
+	parser.ignore(parser.trim(parser.character_equal('{'))),
+	parser.separated_list(parse_field, parser.trim(parser.character_equal(',')), true, parser.tag('fields')),
+	parser.ignore(parser.trim(parser.character_equal('}'))),
+}, parser.steps(parser.tag('product'), parser.display))
+
+-- allow for an atom to be declared with no additional definition
+local parse_simple = parser.sequence({
+	parse_atom,
+}, parser.steps(parser.display))
+
+-- any one of these is considered a complete statement
+local parse_statement = parser.any({
 	-- parse sum type definition
 	parse_sum_type,
 	-- parse product type definition
-	
-	-- an atom just mentioned independently with no type definition
-	-- parse_simple,	
+	parse_product_type,
+	-- -- an atom just mentioned independently with no type definition
+	parse_simple,
 })
 
+-- parse a comment to end of line
+local parse_comment = parser.sequence({
+	parser.character_equal('-'),
+	parser.character_equal('-'),
+	parser.list(parser.character_not_equal('\n')),
+}, parser.steps(parser.reduce_text, parser.tag('comment')))
 
-function parse_syntax_error(stream)
+-- if all other parsers failed, there must be a syntax error at this character
+local function parse_syntax_error(stream)
 	local character, remainder = stream()
 	print('syntax error on line ' .. character.line .. ':' .. character.column)
 	os.exit()
 end
 
-parse_format = parse_many({ parse_comment, parse_statement, parse_whitespace, parse_syntax_error })
-
-
-
-
--- output formats
+atom_file_parser = parser.many({ parse_statement, parse_comment, parser.whitespace, parse_syntax_error })
 
 -- having defined all of the program, begin by processing arguments ----------------------------
 
