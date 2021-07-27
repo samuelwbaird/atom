@@ -58,6 +58,10 @@ local function tag(tag)
 	end
 end
 
+local function first(obj)
+	return obj[1]
+end
+
 local function display(obj)
 	print(require('cjson').encode(obj))
 	return obj
@@ -283,6 +287,7 @@ return {
 	nothing = nothing,
 	steps = steps,
 	tag = tag,
+	first = first,
 	display = display,
 	recurse = recurse,
 	reduce_text = reduce_text,

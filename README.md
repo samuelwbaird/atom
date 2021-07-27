@@ -42,6 +42,7 @@ Definitions can be built from the following assumed primitive types:
 * boolean
 * int
 * number
+* object
 
 Definitions can also freely reference other atoms, definitions can be arbitrarily recursive, even though the file format is not.
 
