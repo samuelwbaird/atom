@@ -16,21 +16,21 @@ local parse_sum_type = parser.sequence({
 	parse_atom,
 	parser.ignore(parser.character_equal(':')),
 	parser.separated_list(parse_atom, parser.character_equal(','), false),
-}, parser.steps(parser.tag('sum'), debug))
+}, parser.steps(parser.tag('sum', { 'name', 'list' }), debug))
 
 -- parse a product type, playing { level: int, difficulty: int, }
 local parse_field = parser.sequence({
 	parse_atom,
 	parser.ignore(parser.character_equal(':')),
 	parse_atom,
-}, parser.steps(parser.tag('field')))
+}, parser.steps(parser.tag('field', { 'name', 'type' })))
 
 local parse_product_type = parser.sequence({
 	parse_atom,
 	parser.ignore(parser.trim(parser.character_equal('{'))),
-	parser.separated_list(parse_field, parser.trim(parser.character_equal(',')), true, parser.tag('fields')),
+	parser.separated_list(parse_field, parser.trim(parser.character_equal(',')), true, parser.tag('fields', 'list')),
 	parser.ignore(parser.trim(parser.character_equal('}'))),
-}, parser.steps(parser.tag('product'), debug))
+}, parser.steps(parser.tag('product', { 'name', 'fields' }), debug))
 
 -- allow for an atom to be declared with no additional definition
 local parse_simple = parser.sequence({

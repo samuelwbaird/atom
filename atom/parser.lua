@@ -51,8 +51,19 @@ local function steps(...)
 	end
 end
 
-local function tag(tag)
+local function tag(tag, fields)
 	return function (obj)
+		if fields then
+			local list = obj
+			obj = {}
+			if type(fields) == 'string' then
+				obj[fields] = list
+			else
+				for i, name in ipairs(fields) do
+					obj[name] = list[i]
+				end
+			end
+		end
 		obj.tag = tag
 		return obj
 	end
