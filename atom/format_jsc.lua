@@ -1,11 +1,6 @@
--- es6 javascript module output
+-- es6 classes javascript module output
 
 local function write(module_name, ast, write)
-	
-	print(require('cjson').encode(ast))
-	print('')
-	print('')
-
 	write('// auto generated atom module ' .. module_name)
 
 	write('\n// late bound classes, allow these to be declared in any order')
@@ -69,6 +64,8 @@ local function write(module_name, ast, write)
 					write('			' .. field.name.text .. ': ' .. field.name.text .. ',')
 				end
 				write('		};')
+				-- TODO: validate fields in the constructor or throw
+				-- TODO: set or register defaults
 			end
 			write('	}')
 			for _, field in ipairs(fields) do
@@ -107,14 +104,17 @@ local function write(module_name, ast, write)
 		write('forward_types[\'' .. type .. '\'] = ' .. type .. ';')
 		write(type .. '.type = ' .. type .. ';')
 		if defined_summed[type] then
+			-- TODO: recursively enumerate all summed types here
 			write(type .. '.types = [' .. table.concat(defined_summed[type], ', ') .. '];')
-			write(type .. '.is = function (value) { return [' .. table.concat(defined_summed[type]) .. '].find(t => t == ' .. type .. ') != undefined;')
+			write(type .. '.is = function (value) { return [' .. table.concat(defined_summed[type], ', ') .. '].find(t => t == ' .. type .. ') != undefined;')
 		else
 			write(type .. '.types = [' .. type .. '];')
 			write(type .. '.is = function (value) { return value.type == ' .. type .. '};');
 		end
 		write('')
 	end
+	
+	-- TODO: define to_json and from_json
 	
 	-- export json import/export and all types
 	write('\n// export as module')

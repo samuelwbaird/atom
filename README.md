@@ -60,3 +60,12 @@ All input is case sensitive.
 Atom names and field names must start with any alphabetic character, and then a contiguous string of alphanumeric or underscore characters.  
 Lines beginning with -- are treated as comments.  
 All other use of special characters is reserved
+
+# TODO
+
+* test ES6 classes version
+* to/from JSON for ES6 classes
+* test ES6 object version
+* to/from JSON for ES6 objects
+* Lua output (single metatable version? or metatable per type)
+* CS with and without classes, learning towards a single class but enum for types?

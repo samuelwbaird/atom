@@ -125,7 +125,7 @@ class player_state {
 forward_types['player_state'] = player_state;
 player_state.type = player_state;
 player_state.types = [loading, title, character, map, encounter];
-player_state.is = function (value) { return [loadingtitlecharactermapencounter].find(t => t == player_state) != undefined;
+player_state.is = function (value) { return [loading, title, character, map, encounter].find(t => t == player_state) != undefined;
 
 forward_types['loading'] = loading;
 loading.type = loading;

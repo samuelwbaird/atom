@@ -19,7 +19,7 @@ end
 -- load and parse the arguments
 args.load(arg, show_example_and_exit)
 local input_file_name = args.get('input', true)
-local format = args.get('format', true, function (value) return value == 'lua' or value == 'js' end)
+local format = args.get('format', true, function (value) return value == 'lua' or value == 'jsc' or value == 'jso' end)
 local name_without_extension = input_file_name:match('([^%.]+)')
 local basename = name_without_extension
 if basename:find('/') then
@@ -48,6 +48,7 @@ local output_format = require('atom/format_' .. format)
 local output = assert(io.open(output_file_name, 'wb'), 'cannot write to ' .. output_file_name)
 output_format(module_name, ast, function (line)
 	output:write(line .. '\n')
+	print(line)
 end)
 output:close()
 
