@@ -58,6 +58,7 @@ local function write(module_name, ast, write)
 			end
 			write('function ' .. type .. ' (' .. table.concat(field_list, ', ') .. ') {')
 			write('	const obj = {')
+			write('		type: \'' ..type .. '\',')
 			for _, field in ipairs(fields) do
 				-- TODO: validate fields in constructors
 				write('		' .. field.name.text .. ': ' .. field.name.text .. ',')
@@ -105,15 +106,43 @@ local function write(module_name, ast, write)
 	for _, type in ipairs(all_atoms) do
 		if not is_sum_type[type] then
 			local is_types = gather_is(type)
-			write('type_map.set(\'' .. type .. '\') = new Set();')
+			write('type_map.set(\'' .. type .. '\', new Set());')
 			for _, t in ipairs(is_types) do
 				write('type_map.get(\'' .. type .. '\').add(\'' .. t .. '\');')
 				write('type_map.get(\'' .. type .. '\').add(' .. t .. ');')
 			end
 		end
 	end
+	write('')
+	
+	-- universally get a type from a string or a function
+	write('// string or constructor to type string')
+	write('function type (string_or_constructor) {')
+	for i, type in ipairs(all_atoms) do
+		write(((i == 1) and '	if' or '	} else if') .. '(string_or_constructor == ' .. type .. ') {')
+		write('		return \'' .. type .. '\'')
+	end
+	write('	} else {')
+	write('		return string_or_constructor;')
+	write('	}')
+	write('}\n')	
 
-	-- TODO: define to_json and from_json
+	write('// associate the type string with the exported funciton')
+	for i, type in ipairs(all_atoms) do
+		write(type .. '.type = \'' .. type .. '\'')
+	end
+	write('')	
+
+	-- define to_json and from_json, hopefully very simple for this format
+	write('// any special handling to serialised and deserialised consistently')
+	write('function to_json (atom) {')
+	write('	return JSON.stringify(atom);')
+	write('}\n')
+	write('function from_json (json) {')
+	write('	let obj = JSON.parse(json);')
+	write('	Object.freeze(obj);')
+	write('	return obj;')
+	write('}\n')
 	
 	-- export json import/export and all types
 	write('\n// export as module')
