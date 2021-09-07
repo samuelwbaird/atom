@@ -1,8 +1,11 @@
 -- es6 classes javascript module output
 
-local function write(module_name, ast, write)
+local function write(module_name, ast, contents, write)
 	write('// auto generated atom module ' .. module_name)
 	write('// using tagged frozen object instances\n')
+	write('/* source')
+	write(contents)
+	write('*/')
 
 	local all_atoms = {}
 	local atoms_mentioned = {
@@ -67,6 +70,7 @@ local function write(module_name, ast, write)
 			write('			return type_map.get(this.type).has(type);')
 			write('		},')
 			write('		equals (other) {')
+			write('			if (other == null) { return false; }')
 			write('			if (other.type != this.type) { return false; }')
 			for _, field in ipairs(fields) do
 				write('			if (other.' .. field.name.text .. ' != this.' .. field.name.text .. ') { return false; }')
@@ -143,7 +147,7 @@ local function write(module_name, ast, write)
 	write('	Object.freeze(obj);')
 	write('	return obj;')
 	write('}\n')
-	
+		
 	-- export json import/export and all types
 	write('\n// export as module')
 	write('export { to_json, from_json, ' .. table.concat(all_atoms, ', ') .. ' };')

@@ -1,6 +1,6 @@
 -- es6 classes javascript module output
 
-local function write(module_name, ast, write)
+local function write(module_name, ast, contents, write)
 	write('// auto generated atom module ' .. module_name)
 
 	write('\n// late bound classes, allow these to be declared in any order')

@@ -46,7 +46,7 @@ local ast = parser(contents)
 -- output format
 local output_format = require('atom/format_' .. format)
 local output = assert(io.open(output_file_name, 'wb'), 'cannot write to ' .. output_file_name)
-output_format(module_name, ast, function (line)
+output_format(module_name, ast, contents, function (line)
 	output:write(line .. '\n')
 	print(line)
 end)
