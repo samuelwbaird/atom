@@ -15,10 +15,12 @@ local function write(module_name, ast, contents, write)
 		string = true,
 		object = true,
 	}
+	local type_is_atom = {}
 	local mention_atom = function (atom)
 		if not atoms_mentioned[atom] then
 			atoms_mentioned[atom] = true
 			all_atoms[#all_atoms + 1] = atom
+			type_is_atom[atom] = true
 		end
 	end
 	
@@ -73,7 +75,11 @@ local function write(module_name, ast, contents, write)
 			write('			if (other == null) { return false; }')
 			write('			if (other.type != this.type) { return false; }')
 			for _, field in ipairs(fields) do
-				write('			if (other.' .. field.name.text .. ' != this.' .. field.name.text .. ') { return false; }')
+				if type_is_atom[field.type.text] then
+					write('			if (!this.' .. field.name.text .. '.equals(other.' .. field.name.text .. ')) { return false; }')					
+				else
+					write('			if (other.' .. field.name.text .. ' != this.' .. field.name.text .. ') { return false; }')
+				end
 			end
 			write('			return true;')
 			write('		}')
