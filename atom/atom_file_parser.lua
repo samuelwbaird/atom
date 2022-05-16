@@ -5,10 +5,21 @@ local parser = require('atom/parser')
 -- local debug = parser.display
 local debug = function () end
 
+-- parse a comment to end of line
+local parse_comment = parser.sequence({
+	parser.character_equal('-'),
+	parser.character_equal('-'),
+	parser.list(parser.character_not_equal('\n')),
+}, parser.steps(parser.reduce_text, parser.tag('comment')))
+
+local parse_ignorable = parser.many({ parse_comment, parser.whitespace })
+
 -- parse a valid atom or token
 local parse_atom = parser.trim_line(parser.sequence({
+	parser.ignore(parser.optional(parse_ignorable)),
 	parser.character_match('%a'),
 	parser.list(parser.character_match('[%w_]')),
+	parser.ignore(parser.optional(parse_ignorable)),
 }, parser.steps(parser.reduce_text, parser.tag('atom'))))
 
 -- parse a sum type, states: in, up, out, over
@@ -29,6 +40,7 @@ local parse_product_type = parser.sequence({
 	parse_atom,
 	parser.ignore(parser.trim(parser.character_equal('{'))),
 	parser.separated_list(parse_field, parser.trim(parser.character_equal(',')), true, parser.tag('fields', 'list')),
+	parser.ignore(parser.optional(parse_ignorable)),
 	parser.ignore(parser.trim(parser.character_equal('}'))),
 }, parser.steps(parser.tag('product', { 'name', 'fields' }), debug))
 
@@ -46,13 +58,6 @@ local parse_statement = parser.any({
 	-- -- an atom just mentioned independently with no type definition
 	parse_simple,
 })
-
--- parse a comment to end of line
-local parse_comment = parser.sequence({
-	parser.character_equal('-'),
-	parser.character_equal('-'),
-	parser.list(parser.character_not_equal('\n')),
-}, parser.steps(parser.reduce_text, parser.tag('comment')))
 
 -- if all other parsers failed, there must be a syntax error at this character
 local function parse_syntax_error(stream)
